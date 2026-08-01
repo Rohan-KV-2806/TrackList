@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Page1 from './pages/Page1';
 import Page2 from './pages/Page2';
 import { type Track } from './components/core/SongAdd';
+import Header from './components/ui/header';
+import Footer from './components/ui/footer';
 
 export default function App() {
   const [page, setPage] = useState<'page1' | 'page2'>('page1');
@@ -13,37 +15,53 @@ export default function App() {
   const [targetCommuteTime, setTargetCommuteTime] = useState<number>(1800); 
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '800px', margin: '0 auto' }}>
-      <nav style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-        <button 
-          onClick={() => setPage('page1')} 
-          style={{ fontWeight: page === 'page1' ? 'bold' : 'normal' }}
-        >
-          1. Build Queue
-        </button>
-        <button 
-          onClick={() => setPage('page2')} 
-          style={{ fontWeight: page === 'page2' ? 'bold' : 'normal' }}
-        >
-          2. Start Commute
-        </button>
-      </nav>
-
-      {page === 'page1' && (
-        <Page1 
-          queue={queue} 
-          setQueue={setQueue} 
-          targetCommuteTime={targetCommuteTime} 
-          setTargetCommuteTime={setTargetCommuteTime} 
-        />
-      )}
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <Header />
       
-      {page === 'page2' && (
-        <Page2 
-          queue={queue} 
-          targetCommuteTime={targetCommuteTime} 
-        />
-      )}
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 md:px-8">
+        {/* Page Navigation Tabs */}
+        <div className="flex gap-2 mb-8 border-b pb-2">
+          <button 
+            onClick={() => setPage('page1')} 
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-md ${
+              page === 'page1' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            1. Build Queue
+          </button>
+          <button 
+            onClick={() => setPage('page2')} 
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-md ${
+              page === 'page2' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            2. Start Commute
+          </button>
+        </div>
+
+        {/* Render Active Page */}
+        {page === 'page1' && (
+          <Page1 
+            queue={queue} 
+            setQueue={setQueue} 
+            targetCommuteTime={targetCommuteTime} 
+            setTargetCommuteTime={setTargetCommuteTime} 
+          />
+        )}
+        
+        {page === 'page2' && (
+          <Page2 
+            queue={queue} 
+            targetCommuteTime={targetCommuteTime} 
+          />
+        )}
+      </main>
+
+      <Footer />
     </div>
   );
 }

@@ -1,4 +1,7 @@
 import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2 } from 'lucide-react';
 
 export interface Track {
   id: string;
@@ -13,9 +16,9 @@ interface SongAddProps {
 
 export default function SongAdd({ onAddTrack }: SongAddProps) {
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Simple helper to read duration
   const getDuration = (file: File): Promise<number> => {
     return new Promise((resolve) => {
       const audio = new Audio();
@@ -33,16 +36,13 @@ export default function SongAdd({ onAddTrack }: SongAddProps) {
     const files = e.target.files;
     if (!files) return;
 
+    setIsLoading(true);
     const newTracks: Track[] = [];
 
-    // Loop through everything found in the folder
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
-      // Only grab audio files
       if (file.type.startsWith('audio/')) {
         const duration = await getDuration(file);
-        
         newTracks.push({
           id: `${file.name}-${i}`,
           title: file.name.replace(/\.[^/.]+$/, ""), // Remove .mp3 extension
@@ -53,6 +53,7 @@ export default function SongAdd({ onAddTrack }: SongAddProps) {
     }
 
     setTracks(newTracks);
+    setIsLoading(false);
   };
 
   const handleAddClick = (track: Track) => {
@@ -67,7 +68,7 @@ export default function SongAdd({ onAddTrack }: SongAddProps) {
   };
 
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div className="flex flex-col gap-4">
       <input
         type="file"
         // @ts-ignore - webkitdirectory allows folder selection
@@ -76,31 +77,52 @@ export default function SongAdd({ onAddTrack }: SongAddProps) {
         multiple
         ref={inputRef}
         onChange={handleFolderChange}
-        style={{ display: 'none' }}
+        className="hidden"
       />
       
-      <button onClick={() => inputRef.current?.click()}>
-        Select Music Folder
-      </button>
+      <Button 
+        variant="outline" 
+        onClick={() => inputRef.current?.click()} 
+        disabled={isLoading}
+        className="w-full"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Scanning Folder...
+          </>
+        ) : (
+          'Select Music Folder'
+        )}
+      </Button>
 
-      <div style={{ marginTop: '10px' }}>
-        {tracks.map((track) => (
-          <div 
-            key={track.id} 
-            style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              padding: '8px', 
-              borderBottom: '1px solid #ccc' 
-            }}
-          >
-            <span>{track.title} ({formatTime(track.duration)})</span>
-            <button onClick={() => handleAddClick(track)}>
-              Add
-            </button>
-          </div>
-        ))}
-      </div>
+      {/* Display discovered tracks */}
+      {tracks.length > 0 && (
+        <div className="border rounded-lg p-1">
+          <h4 className="text-sm font-medium text-muted-foreground px-3 py-2">Available Tracks</h4>
+          <ScrollArea className="h-[200px] w-full rounded-md">
+            <div className="flex flex-col">
+              {tracks.map((track) => (
+                <div 
+                  key={track.id} 
+                  className="flex items-center justify-between px-3 py-2 hover:bg-muted/50 rounded-md transition-colors"
+                >
+                  <div className="flex flex-col overflow-hidden mr-2">
+                    <span className="text-sm font-medium truncate">{track.title}</span>
+                    <span className="text-xs text-muted-foreground">{formatTime(track.duration)}</span>
+                  </div>
+                  <Button 
+                    size="sm"
+                    onClick={() => handleAddClick(track)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
     </div>
   );
 }

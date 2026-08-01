@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { type Track } from './SongAdd';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
 interface CommuteProps {
   queue: Track[];
@@ -34,14 +38,11 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
     if (hasArrived || queue.length === 0) return;
 
     if (!isRunning) {
-      // STARTING / RESUMING
       setIsRunning(true);
-      // Play audio
       if (audioRef.current) {
         audioRef.current.play().catch((e) => console.error("Audio play was blocked:", e));
       }
     } else {
-      // PAUSING
       setIsRunning(false);
       if (audioRef.current) {
         audioRef.current.pause();
@@ -52,7 +53,6 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
   // Timer Effect
   useEffect(() => {
     if (isRunning) {
-      // Record start time to prevent drift
       const startTime = Date.now() - elapsedTime * 1000;
 
       intervalRef.current = setInterval(() => {
@@ -60,7 +60,7 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
         setElapsedTime(newElapsed);
 
         if (newElapsed >= targetCommuteTime) {
-          setElapsedTime(targetCommuteTime); // Cap exactly at target
+          setElapsedTime(targetCommuteTime);
           setIsRunning(false);
           setHasArrived(true);
           if (audioRef.current) {
@@ -69,7 +69,6 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
         }
       }, 1000);
     } else {
-      // Clean up interval to prevent duplicate timers
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -81,10 +80,8 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning]); // Only depend on isRunning
+  }, [isRunning]);
 
-  // If a track naturally finishes playing before the timer moves to the next second,
-  // listen to the "ended" event to jump to the next track.
   const handleAudioEnded = () => {
     if (nextIndex !== -1) {
       setElapsedTime((prev) => prev + queue[currentIndex].duration);
@@ -110,8 +107,13 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
   const progress = targetCommuteTime > 0 ? Math.min((elapsedTime / targetCommuteTime) * 100, 100) : 0;
 
   return (
-    <div>
-      <h2>Commute Timer</h2>
+    <div className="flex flex-col items-center w-full max-w-2xl mx-auto space-y-8">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold tracking-tight">Commute Timer</h2>
+        <p className="text-muted-foreground mt-2">
+          Press start to begin your perfectly timed commute.
+        </p>
+      </div>
 
       {/* HTML5 Audio Element bound directly to the current track's URI */}
       {currentIndex !== -1 && (
@@ -122,55 +124,98 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
         />
       )}
 
-      {/* Progress Bar */}
-      <div style={{ width: '100%', height: '20px', backgroundColor: '#eee', marginBottom: '20px', borderRadius: '4px' }}>
-        <div 
-          style={{ 
-            width: `${progress}%`, 
-            height: '100%', 
-            backgroundColor: hasArrived ? 'green' : 'blue', 
-            transition: 'width 1s linear',
-            borderRadius: '4px'
-          }} 
-        />
-      </div>
+      <Card className="w-full">
+        <CardContent className="flex flex-col items-center p-8 space-y-8">
+          
+          {/* Timer Display */}
+          <div className="flex flex-col items-center justify-center">
+            {hasArrived ? (
+              <span className="text-5xl font-bold text-green-600">🎉 Arrived!</span>
+            ) : (
+              <div className="text-6xl font-bold tabular-nums tracking-tighter">
+                {formatTime(elapsedTime)} <span className="text-2xl text-muted-foreground">/ {formatTime(targetCommuteTime)}</span>
+              </div>
+            )}
+          </div>
 
-      {/* Timer Display */}
-      <div style={{ fontSize: '24px', marginBottom: '20px' }}>
-        {hasArrived ? (
-          <span style={{ color: 'green', fontWeight: 'bold' }}>🎉 Arrived!</span>
-        ) : (
-          <span>{formatTime(elapsedTime)} / {formatTime(targetCommuteTime)}</span>
-        )}
-      </div>
+          {/* Progress Bar */}
+          <div className="w-full space-y-2">
+            <Progress 
+              value={progress} 
+              className={`h-3 w-full ${hasArrived ? '[&>div]:bg-green-600' : '[&>div]:bg-blue-600'}`} 
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Elapsed</span>
+              <span>Target</span>
+            </div>
+          </div>
 
-      {/* Controls */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <button onClick={toggleTimer} disabled={hasArrived || queue.length === 0}>
-          {isRunning ? 'Pause' : elapsedTime > 0 ? 'Resume' : 'Start Commute'}
-        </button>
-        <button onClick={handleReset} disabled={elapsedTime === 0 && !isRunning}>
-          Reset
-        </button>
-      </div>
+          {/* Controls */}
+          <div className="flex items-center gap-4 w-full justify-center">
+            <Button 
+              onClick={toggleTimer} 
+              disabled={hasArrived || queue.length === 0} 
+              size="lg"
+              className="min-w-[160px]"
+            >
+              {isRunning ? 'Pause' : elapsedTime > 0 ? 'Resume' : 'Start Commute'}
+            </Button>
+            <Button 
+              onClick={handleReset} 
+              disabled={elapsedTime === 0 && !isRunning} 
+              variant="outline" 
+              size="lg"
+            >
+              Reset
+            </Button>
+          </div>
 
-      {/* Now Playing / Next Up */}
-      <div>
-        <h3>Now Playing:</h3>
-        {currentIndex !== -1 ? (
-          <p style={{ fontWeight: 'bold' }}>{queue[currentIndex].title}</p>
-        ) : hasArrived ? (
-          <p style={{ color: 'gray' }}>Commute Finished</p>
-        ) : (
-          <p style={{ color: 'gray' }}>Press Start to begin</p>
-        )}
+          {/* Empty Queue Warning */}
+          {queue.length === 0 && (
+            <div className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-md border border-red-200">
+              Your queue is empty. Go back to Page 1 and add some tracks!
+            </div>
+          )}
 
-        <h3>Next Up:</h3>
-        {nextIndex !== -1 ? (
-          <p>{queue[nextIndex].title}</p>
-        ) : (
-          <p style={{ color: 'gray' }}>None</p>
-        )}
+        </CardContent>
+      </Card>
+
+      {/* Now Playing / Next Up Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+        <Card className={`overflow-hidden ${currentIndex !== -1 ? 'border-blue-500 shadow-md' : 'border-border'}`}>
+          <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Now Playing
+            </CardTitle>
+            {currentIndex !== -1 && (
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">Active</Badge>
+            )}
+          </CardHeader>
+          <CardContent>
+            {currentIndex !== -1 ? (
+              <p className="text-xl font-bold truncate">{queue[currentIndex].title}</p>
+            ) : hasArrived ? (
+              <p className="text-xl font-bold text-muted-foreground">Commute Finished</p>
+            ) : (
+              <p className="text-xl font-bold text-muted-foreground">Press Start to begin</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Next Up
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {nextIndex !== -1 ? (
+              <p className="text-xl font-bold truncate">{queue[nextIndex].title}</p>
+            ) : (
+              <p className="text-xl font-bold text-muted-foreground">None</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
