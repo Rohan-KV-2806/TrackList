@@ -104,8 +104,9 @@ export default function Commute({ queue, targetCommuteTime }: CommuteProps) {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const progress = targetCommuteTime > 0 ? Math.min((elapsedTime / targetCommuteTime) * 100, 100) : 0;
-
+  const totalQueueTime = queue.reduce((acc, track) => acc + track.duration, 0);
+  const progressBase = totalQueueTime > 0 ? totalQueueTime : targetCommuteTime;
+  const progress = progressBase > 0 ? Math.min((elapsedTime / progressBase) * 100, 100) : 0;
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto space-y-8">
       <div className="text-center">
